@@ -1,34 +1,26 @@
 #include <stdint.h>
 
-// Global variables
-volatile uint8_t g_ReadDIpinSts; // Variable to read the real-time status of digital input pins
-volatile uint8_t g_AppDIpinSts;  // Variable to update the digital input status
+volatile uint8_t g_ReadDIpinSts;
+volatile uint8_t g_AppDIpinSts;
 
-// Counter array to keep track of consecutive ISR calls for each pin
 volatile uint8_t pinConsistencyCounter[8] = {0}; 
 
 int ISR_DIsampling() {
-    // Temporary variables
     uint8_t currentStatus = g_ReadDIpinSts;
     uint8_t mask;
     uint8_t i;
 
-    // Loop through each digital input pin (assuming 8 pins)
     for (i = 0; i < 8; i++) {
         mask = (1 << i); 
 
-        // Check if the current status of the pin matches the last recorded status in g_AppDIpinSts
         if ((g_AppDIpinSts & mask) == (currentStatus & mask)) {
-            // If the status matches, increment the consistency counter
             pinConsistencyCounter[i]++;
             
-            // If the status is consistent for 10 consecutive ISR calls, update g_AppDIpinSts
             if (pinConsistencyCounter[i] >= 10) {
                 g_AppDIpinSts = (g_AppDIpinSts & ~mask) | (currentStatus & mask);
                 pinConsistencyCounter[i] = 0; 
             }
         } else {
-            // If the status does not match, reset the consistency counter
             pinConsistencyCounter[i] = 0;
         }
     }
